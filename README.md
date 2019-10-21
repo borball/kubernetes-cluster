@@ -14,19 +14,19 @@ Execute the following vagrant command to start a new Kubernetes cluster, this wi
 vagrant up
 ```
 
-You can also start invidual machines by vagrant up k8s-head, vagrant up k8s-node-1 and vagrant up k8s-node-2
+You can also start invidual machines by vagrant up k8s-master, vagrant up k8s-node1 and vagrant up k8s-node2
 
 If more than two nodes are required, you can edit the servers array in the Vagrantfile
 
 ```
 servers = [
-    {
-        :name => "k8s-node-3",
+{
+        :name => "k8s-node3",
         :type => "node",
         :box => "ubuntu/xenial64",
-        :box_version => "20180831.0.0",
-        :eth1 => "192.168.205.13",
-        :mem => "2048",
+        :box_version => "20191005.0.0",
+        :eth1 => "192.168.10.13",
+        :mem => "4096",
         :cpu => "2"
     }
 ]
@@ -41,7 +41,7 @@ Execute the following command to remove the virtual machines created for the Kub
 vagrant destroy -f
 ```
 
-You can destroy individual machines by vagrant destroy k8s-node-1 -f
+You can destroy individual machines by vagrant destroy k8s-node1 -f
 
 ## Licensing
 
