@@ -102,7 +102,24 @@ $configureMaster = <<-SCRIPT
 
     kubeadm token create --print-join-command >> /etc/kubeadm_join_cmd.sh
     chmod +x /etc/kubeadm_join_cmd.sh
+    
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    
 SCRIPT
+
+$configureK8sAddons = <<-SCRIPT
+    echo "Install helm3"
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+    
+    echo "Install k8s dashboard"
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+    
+    echo "Install traefik"
+    helm repo add traefik https://containous.github.io/traefik-helm-chart
+    helm install traefik traefik/traefik
+    
+SCRIPT
+
 
 $configureNode = <<-SCRIPT
     echo "This is worker"
@@ -136,6 +153,10 @@ Vagrant.configure("2") do |config|
                 config.vm.provision "shell", inline: $configureMaster
             else
                 config.vm.provision "shell", inline: $configureNode
+            end
+            
+            if opts[:type] == "master"
+                config.vm.provision "shell", inline: $configureK8sAddons
             end
 
         end
