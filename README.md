@@ -23,9 +23,8 @@ servers = [
 {
         :name => "k8s-node3",
         :type => "node",
-        :box => "ubuntu/xenial64",
-        :box_version => "20191005.0.0",
-        :eth1 => "192.168.10.13",
+        :box => "ubuntu/bionic64",
+        :eth1 => "192.168.50.13",
         :mem => "4096",
         :cpu => "2"
     }
