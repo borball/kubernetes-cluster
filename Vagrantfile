@@ -5,44 +5,55 @@ servers = [
     {
         :name => "k8s-master",
         :type => "master",
-        :box => "ubuntu/xenial64",
-        :box_version => "20191005.0.0",
-        :eth1 => "192.168.10.10",
-        :mem => "4096",
+        :box => "ubuntu/bionic64",
+        :eth1 => "192.168.50.10",
+        :mem => "2048",
         :cpu => "2"
     },
     {
         :name => "k8s-node1",
         :type => "node",
-        :box => "ubuntu/xenial64",
-        :box_version => "20191005.0.0",
-        :eth1 => "192.168.10.11",
+        :box => "ubuntu/bionic64",
+        :eth1 => "192.168.50.11",
         :mem => "4096",
         :cpu => "2"
     },
     {
         :name => "k8s-node2",
         :type => "node",
-        :box => "ubuntu/xenial64",
-        :box_version => "20191005.0.0",
-        :eth1 => "192.168.10.12",
+        :box => "ubuntu/bionic64",
+        :eth1 => "192.168.50.12",
         :mem => "4096",
         :cpu => "2"
     }
 ]
 
-# This script to install k8s using kubeadm will get executed after a box is provisioned
+calico_yaml = "https://docs.projectcalico.org/v3.14/manifests/calico.yaml"
+
 $configureBox = <<-SCRIPT
 
     apt-get update
     apt-get install -y apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
     add-apt-repository "deb https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable"
-    apt-get update && apt-get install -y docker.io
+    apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
 
+    cat <<EOF >/etc/docker/daemon.json
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+    
+    systemctl daemon-reload
+    systemctl restart docker
     # run docker commands as vagrant user (sudo not required)
     usermod -aG docker vagrant
-
+    
     # install kubeadm
     apt-get install -y apt-transport-https curl
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -50,7 +61,7 @@ $configureBox = <<-SCRIPT
     deb http://apt.kubernetes.io/ kubernetes-xenial main
 EOF
     apt-get update
-    apt-get install -y kubelet=1.16.2-00 kubeadm=1.16.2-00 kubectl=1.16.2-00
+    apt-get install -y kubelet kubeadm kubectl
     apt-mark hold kubelet kubeadm kubectl
 
     # kubelet requires swap off
@@ -60,9 +71,9 @@ EOF
     sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
     # ip of this box
-    IP_ADDR=`ifconfig enp0s8 | grep Mask | awk '{print $2}'| cut -f2 -d:`
+    IP_ADDR=`ifconfig enp0s8 | grep mask | awk '{print $2}'| cut -f2 -d:`
     # set node-ip
-    sudo sed -i "/^[^#]*KUBELET_EXTRA_ARGS=/c\KUBELET_EXTRA_ARGS=--node-ip=$IP_ADDR" /etc/default/kubelet
+    echo "KUBELET_EXTRA_ARGS=--node-ip=$IP_ADDR" > /etc/default/kubelet
     sudo systemctl restart kubelet
 
     # required for setting up password less ssh between guest VMs
@@ -73,7 +84,7 @@ SCRIPT
 $configureMaster = <<-SCRIPT
     echo "This is master"
     # ip of this box
-    IP_ADDR=`ifconfig enp0s8 | grep Mask | awk '{print $2}'| cut -f2 -d:`
+    IP_ADDR=`ifconfig enp0s8 | grep mask | awk '{print $2}'| cut -f2 -d:`
 
     # install k8s master
     HOST_NAME=$(hostname -s)
@@ -86,7 +97,7 @@ $configureMaster = <<-SCRIPT
 
     # install Calico pod network addon
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl apply -f https://docs.projectcalico.org/v3.8/manifests/calico.yaml
+    kubectl apply -f kubectl apply -f calico_yaml
 
     kubeadm token create --print-join-command >> /etc/kubeadm_join_cmd.sh
     chmod +x /etc/kubeadm_join_cmd.sh
@@ -95,7 +106,7 @@ SCRIPT
 $configureNode = <<-SCRIPT
     echo "This is worker"
     apt-get install -y sshpass
-    sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@192.168.10.10:/etc/kubeadm_join_cmd.sh .
+    sshpass -p "vagrant" scp -o StrictHostKeyChecking=no vagrant@192.168.50.10:/etc/kubeadm_join_cmd.sh .
     sh ./kubeadm_join_cmd.sh
 SCRIPT
 
@@ -117,9 +128,6 @@ Vagrant.configure("2") do |config|
                 v.customize ["modifyvm", :id, "--cpus", opts[:cpu]]
 
             end
-
-            # we cannot use this because we can't install the docker version we want - https://github.com/hashicorp/vagrant/issues/4871
-            #config.vm.provision "docker"
 
             config.vm.provision "shell", inline: $configureBox
 
