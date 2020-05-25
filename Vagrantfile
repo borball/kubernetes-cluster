@@ -111,11 +111,15 @@ $configureK8sAddons = <<-SCRIPT
     echo "Install helm3"
     curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     
+    #sleep until k8s ready
+    while [ $(kubectl get node |grep 'k8s-master' |grep Ready | wc -l) == 0 ]; do sleep 1; done;
+    
     echo "Install k8s dashboard"
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
     
     echo "Install traefik"
     helm repo add traefik https://containous.github.io/traefik-helm-chart
+
     helm install traefik traefik/traefik
     
 SCRIPT
@@ -143,6 +147,7 @@ Vagrant.configure("2") do |config|
                 v.name = opts[:name]
                 v.customize ["modifyvm", :id, "--groups", "/k8s"]
                 v.customize ["modifyvm", :id, "--memory", opts[:mem]]
+                
                 v.customize ["modifyvm", :id, "--cpus", opts[:cpu]]
 
             end
