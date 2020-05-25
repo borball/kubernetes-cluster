@@ -28,8 +28,6 @@ servers = [
     }
 ]
 
-calico_yaml = "https://docs.projectcalico.org/v3.14/manifests/calico.yaml"
-
 $configureBox = <<-SCRIPT
 
     apt-get update
@@ -83,9 +81,12 @@ SCRIPT
 
 $configureMaster = <<-SCRIPT
     echo "This is master"
+    
+    CALICO_YAML="https://docs.projectcalico.org/v3.14/manifests/calico.yaml"
+
     # ip of this box
     IP_ADDR=`ifconfig enp0s8 | grep mask | awk '{print $2}'| cut -f2 -d:`
-
+    
     # install k8s master
     HOST_NAME=$(hostname -s)
     kubeadm init --apiserver-advertise-address=$IP_ADDR --apiserver-cert-extra-sans=$IP_ADDR  --node-name $HOST_NAME --pod-network-cidr=172.16.0.0/16
@@ -97,7 +98,7 @@ $configureMaster = <<-SCRIPT
 
     # install Calico pod network addon
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl apply -f kubectl apply -f calico_yaml
+    kubectl apply -f $CALICO_YAML
 
     kubeadm token create --print-join-command >> /etc/kubeadm_join_cmd.sh
     chmod +x /etc/kubeadm_join_cmd.sh
