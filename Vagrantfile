@@ -102,15 +102,15 @@ $configureMaster = <<-SCRIPT
 
     kubeadm token create --print-join-command >> /etc/kubeadm_join_cmd.sh
     chmod +x /etc/kubeadm_join_cmd.sh
-    
-    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-    
+     
 SCRIPT
 
 $configureK8sAddons = <<-SCRIPT
     echo "Install helm3"
     curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
     
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+
     #sleep until k8s ready
     while [ $(kubectl get node |grep 'k8s-master' |grep Ready | wc -l) == 0 ]; do sleep 1; done;
     
