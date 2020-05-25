@@ -42,6 +42,13 @@ vagrant destroy -f
 
 You can destroy individual machines by vagrant destroy k8s-node1 -f
 
+## K8s Addons
+
+Following Kubernetes plugins will be installed on the cluster:
+
+- Dashboard: kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+- Traefik:  helm install traefik traefik/traefik
+
 ## Licensing
 
 [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0).
